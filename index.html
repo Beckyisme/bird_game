@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>愤怒的小鸟</title>
+    <script>
+        //游戏相关数据尽量使用全局变量
+        var ctx;
+        var time;//定时器
+        var images = {
+            bg: './images/bg.png',
+            ground: './images/ground.png',
+            all_img: './images/aimg.png',
+            bird: [
+                './images/0.gif',
+                './images/1.gif',
+                './images/2.gif'
+            ]
+        }
+        var dis = 150;//上下管道的间隙
+        var draw_arr = [];
+        var down_speed = 2;
+        var pipe_speed = 20;
+        var bird_index = 0;//小鸟图片的数组下标
+        var score = 0;
+        var flag = true;//小鸟通过管道积分的标记，默认为true,通过管道后为false,加分并管道从右侧出现在变为true
+
+        // 通用构造函数
+        function Common(x, y, w, h, img_src){
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            var image = new Image();
+            image.src = img_src;
+            this.img = image;
+
+            //画自己的功能函数
+            this.draw = function(){
+                ctx.drawImage(this.img, this.x, this.y, this.w, this.h);//画图片的方法，调用全局函数ctx
+            }
+        }
+        //管道构造函数
+        function Up_pipe(x, y, w, h, img_src){
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            var image = new Image();
+            image.src = img_src;
+            this.img = image;
+
+            //画自己的功能函数
+            this.draw = function(){
+                ctx.drawImage(this.img, 150, 500, 150, 800, this.x, this.y, this.w, this.h);//画图片的方法，调用全局函数ctx
+            }
+        }
+        function Down_pipe(x, y, w, h, img_src){
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            var image = new Image();
+            image.src = img_src;
+            this.img = image;
+
+            //画自己的功能函数
+            this.draw = function(){
+                ctx.drawImage(this.img, 0, 500, 150, 800, this.x, this.y, this.w, this.h);//画图片的方法，调用全局函数ctx
+            }
+        }
+        //小鸟构造函数
+        function Bird(x, y, w, h, img_src){
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            
+            //画自己的功能函数
+            this.draw = function(){
+                var image = new Image();
+                image.src = img_src[bird_index%3];
+
+                bird_index++;
+                ctx.drawImage(image, this.x, this.y, this.w, this.h);//画图片的方法，调用全局函数ctx
+            }
+        }
+
+        //画所有
+        var bg = new Common(0, 0, 400, 600, images.bg);
+        var ground = new Common(0, 550, 400, 200, images.ground);
+        var up = new Up_pipe(350, 0, 100, 200, images.all_img);
+        var down = new Down_pipe(350, 350, 100, 210, images.all_img);
+        var bird = new Bird(100, 300, 40, 40,images.bird)
+        draw_arr.push(bg);
+        draw_arr.push(ground);
+        draw_arr.push(up);
+        draw_arr.push(down);
+        draw_arr.push(bird);
+
+
+          //游戏结束判断
+        function judge(){
+            //碰撞判断,宽度范围内是正常逻辑的判断，在通过范围内，第二处判断是小于上管道的高（说明已经碰到上管道），
+            //大于下管道的y坐标,说明碰上了下管道，那么游戏结束
+            if((bird.x + bird.w > up.x && bird.x + bird.w < up.x + up.w + bird.w) &&
+                ((bird.y < up.h ) || (bird.y + bird.h > down.y))
+            ){
+                clearInterval(time);
+            }
+
+            //小鸟动起来
+            bird.y += down_speed;
+            //管道
+            //管道的右边的一条边>0,说明管道还在画布上
+            if(up.x+up.w > 0){
+                up.x -= pipe_speed;
+                down.x -= pipe_speed;
+            }else{
+                flag = true;
+                //管道依次从右边出现
+                up.x = 400;
+                down.x = 400;
+
+                //从右边出现时，改变上，下管道的高度
+                up.h = Math.random()*200 + 100;
+                down.y = up.h + 0 + dis;
+                down.h = 410 - up.h;
+            }
+            //得分判断，flag标记
+            if(flag && bird.x >= up.x + up.w){
+                score++;
+                flag = false;
+            }
+            //得分,把得分画到画布上
+            ctx.fillStyle = 'rgb(255,255,255)';
+            ctx.font= '30px Arial';
+            ctx.fillText(score, 185,200);
+        }
+
+        function drawall(){
+            //清空画布，并画方法
+            ctx.clearRect(0, 0, 400, 600);
+            for(let i = 0; i < draw_arr.length; i++){
+                draw_arr[i].draw();
+            }
+
+            //游戏结束判断
+            judge();
+        }
+
+        function keyup(e){
+            if(e.keyCode == 32){
+                bird.y -= 20;
+            }
+        }
+
+        //初始化函数
+        function init(){
+            ctx = document.getElementById("canvas").getContext('2d');
+            //玩家控制游戏
+            document.onkeyup = keyup;
+
+            drawall();
+            //开启定时器,开始画角色
+            time = setInterval(drawall,100);
+        }
+    </script>
+</head>
+<body onload="init()">
+    <canvas id="canvas" width="400" height="600" style="margin-left:20px"></canvas>
+</body>
+</html>
